@@ -406,6 +406,116 @@ public class SwiftYOLOPlatformView: NSObject, FlutterPlatformView, FlutterStream
           }
         }
 
+      // MARK: - Video Recording Methods
+      case "startRecording":
+        print("SwiftYOLOPlatformView: Received startRecording call")
+        self.yoloView?.startRecording { [weak self] url, error in
+          if let error = error {
+            result(
+              FlutterError(
+                code: "recording_failed",
+                message: "Failed to start recording: \(error.localizedDescription)",
+                details: nil
+              )
+            )
+          } else {
+            result(nil) // Success
+          }
+        }
+
+      case "stopRecording":
+        print("SwiftYOLOPlatformView: Received stopRecording call")
+        self.yoloView?.stopRecording { [weak self] url, error in
+          if let error = error {
+            result(
+              FlutterError(
+                code: "recording_failed",
+                message: "Failed to stop recording: \(error.localizedDescription)",
+                details: nil
+              )
+            )
+          } else if let url = url {
+            result(url.path) // Return file path
+          } else {
+            result(nil) // No recording was in progress
+          }
+        }
+
+      // MARK: - Frame Rate Management Methods
+      case "getSupportedFrameRates":
+        print("SwiftYOLOPlatformView: Received getSupportedFrameRates call")
+        if let supportedRates = self.yoloView?.getSupportedFrameRatesInfo() {
+          result(supportedRates)
+        } else {
+          result([:]) // Empty dictionary if no rates available
+        }
+
+      case "setFrameRate":
+        if let args = call.arguments as? [String: Any],
+           let fps = args["fps"] as? Int {
+          print("SwiftYOLOPlatformView: Received setFrameRate call with fps: \(fps)")
+          let success = self.yoloView?.setFrameRate(fps) ?? false
+          result(success)
+        } else {
+          result(
+            FlutterError(
+              code: "invalid_args",
+              message: "Invalid arguments for setFrameRate",
+              details: nil
+            )
+          )
+        }
+
+      // MARK: - Slow Motion Methods
+      case "isSlowMotionSupported":
+        print("SwiftYOLOPlatformView: Received isSlowMotionSupported call")
+        let supported = self.yoloView?.isSlowMotionSupported() ?? false
+        result(supported)
+
+      case "getMaxSlowMotionFrameRate":
+        print("SwiftYOLOPlatformView: Received getMaxSlowMotionFrameRate call")
+        let maxFps = self.yoloView?.getMaxSlowMotionFrameRate() ?? 30
+        result(maxFps)
+
+      case "enableSlowMotion":
+        if let args = call.arguments as? [String: Any],
+           let enable = args["enable"] as? Bool {
+          print("SwiftYOLOPlatformView: Received enableSlowMotion call with enable: \(enable)")
+          let success = self.yoloView?.enableSlowMotion(enable) ?? false
+          result(success)
+        } else {
+          result(
+            FlutterError(
+              code: "invalid_args",
+              message: "Invalid arguments for enableSlowMotion",
+              details: nil
+            )
+          )
+        }
+
+      case "isSlowMotionActive":
+        print("SwiftYOLOPlatformView: Received isSlowMotionActive call")
+        let active = self.yoloView?.isSlowMotionActive() ?? false
+        result(active)
+
+      case "getRecordingStatus":
+        print("SwiftYOLOPlatformView: Received getRecordingStatus call")
+        if let status = self.yoloView?.getRecordingStatus() {
+          result(status)
+        } else {
+          result([:]) // Empty dictionary if no status available
+        }
+
+      case "isCurrentlyRecording":
+        print("SwiftYOLOPlatformView: Received isCurrentlyRecording call")
+        let isRecording = self.yoloView?.isCurrentlyRecording() ?? false
+        result(isRecording)
+
+      case "getCurrentRecordingFilePath":
+        print("SwiftYOLOPlatformView: Received getCurrentRecordingFilePath call")
+        let filePath = self.yoloView?.getCurrentRecordingFilePath()
+        result(filePath)
+
       // Additional methods can be added here in the future
 
       default:

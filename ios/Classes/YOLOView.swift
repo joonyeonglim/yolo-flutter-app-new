@@ -1182,21 +1182,79 @@ public class YOLOView: UIView, VideoCaptureDelegate {
   }
 
   @objc func switchCameraTapped() {
-
-    self.videoCapture.captureSession.beginConfiguration()
-    let currentInput = self.videoCapture.captureSession.inputs.first as? AVCaptureDeviceInput
-    self.videoCapture.captureSession.removeInput(currentInput!)
-    guard let currentPosition = currentInput?.device.position else { return }
-
-    let nextCameraPosition: AVCaptureDevice.Position = currentPosition == .back ? .front : .back
-
-    let newCameraDevice = bestCaptureDevice(position: nextCameraPosition)
-
-    guard let videoInput1 = try? AVCaptureDeviceInput(device: newCameraDevice) else {
+    print("YOLOView: switchCameraTapped() called")
+    
+    // Check if capture session is running
+    guard videoCapture.captureSession.isRunning else {
+      print("YOLOView: Capture session is not running, cannot switch camera")
       return
     }
-
-    self.videoCapture.captureSession.addInput(videoInput1)
+    
+    self.videoCapture.captureSession.beginConfiguration()
+    
+    // Get all current inputs
+    let allInputs = self.videoCapture.captureSession.inputs
+    var currentVideoInput: AVCaptureDeviceInput?
+    
+    // Find video input specifically
+    for input in allInputs {
+      if let deviceInput = input as? AVCaptureDeviceInput,
+         deviceInput.device.hasMediaType(.video) {
+        currentVideoInput = deviceInput
+        break
+      }
+    }
+    
+    guard let videoInput = currentVideoInput,
+          let currentPosition = videoInput.device.position as AVCaptureDevice.Position? else {
+      print("YOLOView: Failed to get current video input or position")
+      self.videoCapture.captureSession.commitConfiguration()
+      return
+    }
+    
+    print("YOLOView: Current camera position: \(currentPosition)")
+    print("YOLOView: Current inputs count: \(allInputs.count)")
+    
+    // Determine next camera position
+    let nextCameraPosition: AVCaptureDevice.Position = currentPosition == .back ? .front : .back
+    print("YOLOView: Switching to camera position: \(nextCameraPosition)")
+    
+    // Get new camera device
+    let newCameraDevice = bestCaptureDevice(position: nextCameraPosition)
+    print("YOLOView: New camera device: \(newCameraDevice)")
+    
+    // Create new video input
+    guard let newVideoInput = try? AVCaptureDeviceInput(device: newCameraDevice) else {
+      print("YOLOView: Failed to create new video input")
+      self.videoCapture.captureSession.commitConfiguration()
+      return
+    }
+    
+    // Remove only the video input (keep audio input)
+    self.videoCapture.captureSession.removeInput(videoInput)
+    print("YOLOView: Removed current video input")
+    
+    // Check if new input can be added
+    guard self.videoCapture.captureSession.canAddInput(newVideoInput) else {
+      print("YOLOView: Cannot add new video input")
+      // Try to re-add the old input if new one fails
+      if self.videoCapture.captureSession.canAddInput(videoInput) {
+        self.videoCapture.captureSession.addInput(videoInput)
+        print("YOLOView: Re-added original video input as fallback")
+      }
+      self.videoCapture.captureSession.commitConfiguration()
+      return
+    }
+    
+    // Add new video input
+    self.videoCapture.captureSession.addInput(newVideoInput)
+    print("YOLOView: Added new video input")
+    
+    // Update VideoCapture's internal references
+    self.videoCapture.captureDevice = newCameraDevice
+    self.videoCapture.videoInput = newVideoInput
+    
+    // Update video orientation
     var orientation: AVCaptureVideoOrientation = .portrait
     switch UIDevice.current.orientation {
     case .portrait:
@@ -1208,11 +1266,18 @@ public class YOLOView: UIView, VideoCaptureDelegate {
     case .landscapeLeft:
       orientation = .landscapeRight
     default:
-      return
+      orientation = .portrait // Default fallback
     }
+    
     self.videoCapture.updateVideoOrientation(orientation: orientation)
-
+    
+    // Update current position tracking
+    self.videoCapture.currentPosition = nextCameraPosition
+    
+    // Commit configuration
     self.videoCapture.captureSession.commitConfiguration()
+    print("YOLOView: Camera switch completed successfully to \(nextCameraPosition)")
+    print("YOLOView: Final inputs count: \(self.videoCapture.captureSession.inputs.count)")
   }
 
   public func capturePhoto(completion: @escaping (UIImage?) -> Void) {
@@ -1710,5 +1775,78 @@ extension YOLOView: AVCapturePhotoCaptureDelegate {
     guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return nil }
     let uiImage = UIImage(cgImage: cgImage)
     return uiImage.jpegData(compressionQuality: 0.9)
+  }
+
+  // MARK: - Video Recording Functions
+
+  /// Starts video recording with detection overlays
+  public func startRecording(completion: @escaping (URL?, Error?) -> Void) {
+    print("YOLOView: Starting video recording")
+    videoCapture.startRecording(completion: completion)
+  }
+
+  /// Stops video recording and returns the file path
+  public func stopRecording(completion: @escaping (URL?, Error?) -> Void) {
+    print("YOLOView: Stopping video recording")
+    videoCapture.stopRecording(completion: completion)
+  }
+  
+  /// Simple recording state check
+  public func isCurrentlyRecording() -> Bool {
+    return videoCapture.getCurrentRecordingState()
+  }
+  
+  /// Get current recording file path
+  public func getCurrentRecordingFilePath() -> String? {
+    return videoCapture.getCurrentRecordingPath()
+  }
+
+  // MARK: - Frame Rate Management Functions
+
+  /// Gets information about supported frame rates
+  public func getSupportedFrameRatesInfo() -> [String: Bool] {
+    print("YOLOView: Getting supported frame rates")
+    return videoCapture.getSupportedFrameRatesInfo()
+  }
+
+  /// Sets the camera frame rate
+  public func setFrameRate(_ fps: Int) -> Bool {
+    print("YOLOView: Setting frame rate to \(fps) FPS")
+    return videoCapture.setFrameRate(fps)
+  }
+
+  /// Checks if a specific frame rate is supported
+  public func isFrameRateSupported(_ fps: Double) -> Bool {
+    return videoCapture.isFrameRateSupported(fps)
+  }
+
+  // MARK: - Slow Motion Functions
+
+  /// Checks if slow motion recording is supported
+  public func isSlowMotionSupported() -> Bool {
+    print("YOLOView: Checking slow motion support")
+    return videoCapture.isSlowMotionSupported()
+  }
+
+  /// Gets the maximum frame rate for slow motion recording
+  public func getMaxSlowMotionFrameRate() -> Int {
+    print("YOLOView: Getting max slow motion frame rate")
+    return videoCapture.getMaxSlowMotionFrameRate()
+  }
+
+  /// Enables or disables slow motion mode
+  public func enableSlowMotion(_ enable: Bool) -> Bool {
+    print("YOLOView: \(enable ? "Enabling" : "Disabling") slow motion mode")
+    return videoCapture.enableSlowMotion(enable)
+  }
+
+  /// Checks if slow motion mode is currently active
+  public func isSlowMotionActive() -> Bool {
+    return videoCapture.isSlowMotionActive()
+  }
+  
+  /// Gets current recording status for debugging
+  public func getRecordingStatus() -> [String: Any] {
+    return videoCapture.getRecordingStatus()
   }
 }

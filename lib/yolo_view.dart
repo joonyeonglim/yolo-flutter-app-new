@@ -529,6 +529,353 @@ class YOLOViewController {
       return null;
     }
   }
+
+  // MARK: - Video Recording Functions
+
+  /// Starts video recording with detection overlays.
+  ///
+  /// Records video with detection bounding boxes and labels overlaid.
+  /// The video is saved to temporary storage and the file path is returned
+  /// when recording is stopped.
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   await controller.startRecording();
+  ///   print('Recording started');
+  /// } catch (e) {
+  ///   print('Failed to start recording: $e');
+  /// }
+  /// ```
+  Future<void> startRecording() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot start recording, view not yet created',
+      );
+      return;
+    }
+    try {
+      await _methodChannel!.invokeMethod('startRecording');
+      logInfo('YOLOViewController: Video recording started');
+    } catch (e) {
+      logInfo('YOLOViewController: Error starting recording: $e');
+      rethrow;
+    }
+  }
+
+  /// Stops video recording and returns the file path.
+  ///
+  /// Stops the current video recording and returns the path to the recorded
+  /// video file. Returns null if no recording was in progress or if an error occurred.
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   final filePath = await controller.stopRecording();
+  ///   if (filePath != null) {
+  ///     print('Recording saved to: $filePath');
+  ///   }
+  /// } catch (e) {
+  ///   print('Failed to stop recording: $e');
+  /// }
+  /// ```
+  Future<String?> stopRecording() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot stop recording, view not yet created',
+      );
+      return null;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<String>('stopRecording');
+      logInfo('YOLOViewController: Video recording stopped, file: $result');
+      return result;
+    } catch (e) {
+      logInfo('YOLOViewController: Error stopping recording: $e');
+      rethrow;
+    }
+  }
+
+  // MARK: - Frame Rate Management Functions
+
+  /// Gets information about supported frame rates.
+  ///
+  /// Returns a map where keys are frame rate descriptions (e.g., "30fps", "60fps")
+  /// and values indicate whether that frame rate is supported by the current device.
+  ///
+  /// Example:
+  /// ```dart
+  /// final supportedRates = await controller.getSupportedFrameRates();
+  /// print('30fps supported: ${supportedRates['30fps']}');
+  /// print('60fps supported: ${supportedRates['60fps']}');
+  /// ```
+  Future<Map<String, bool>> getSupportedFrameRates() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot get supported frame rates, view not yet created',
+      );
+      return {};
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<Map<Object?, Object?>>('getSupportedFrameRates');
+      final Map<String, bool> supportedRates = {};
+      result?.forEach((key, value) {
+        if (key is String && value is bool) {
+          supportedRates[key] = value;
+        }
+      });
+      logInfo('YOLOViewController: Supported frame rates: $supportedRates');
+      return supportedRates;
+    } catch (e) {
+      logInfo('YOLOViewController: Error getting supported frame rates: $e');
+      return {};
+    }
+  }
+
+  /// Sets the camera frame rate.
+  ///
+  /// Attempts to set the camera to the specified frame rate (in FPS).
+  /// Returns true if the frame rate was set successfully, false otherwise.
+  ///
+  /// Use [getSupportedFrameRates] to check which frame rates are supported
+  /// before attempting to set them.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Set to 60 FPS for smoother video
+  /// final success = await controller.setFrameRate(60);
+  /// if (success) {
+  ///   print('Frame rate set to 60 FPS');
+  /// } else {
+  ///   print('Failed to set frame rate');
+  /// }
+  /// ```
+  Future<bool> setFrameRate(int fps) async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot set frame rate, view not yet created',
+      );
+      return false;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<bool>('setFrameRate', {
+        'fps': fps,
+      });
+      logInfo('YOLOViewController: Frame rate set to $fps FPS: ${result ?? false}');
+      return result ?? false;
+    } catch (e) {
+      logInfo('YOLOViewController: Error setting frame rate: $e');
+      return false;
+    }
+  }
+
+  // MARK: - Slow Motion Functions
+
+  /// Checks if slow motion recording is supported by the device.
+  ///
+  /// Returns true if the device supports high frame rate recording
+  /// (typically 120fps or higher) for slow motion effects.
+  ///
+  /// Example:
+  /// ```dart
+  /// if (await controller.isSlowMotionSupported()) {
+  ///   print('Slow motion is supported');
+  /// }
+  /// ```
+  Future<bool> isSlowMotionSupported() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot check slow motion support, view not yet created',
+      );
+      return false;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<bool>('isSlowMotionSupported');
+      logInfo('YOLOViewController: Slow motion supported: ${result ?? false}');
+      return result ?? false;
+    } catch (e) {
+      logInfo('YOLOViewController: Error checking slow motion support: $e');
+      return false;
+    }
+  }
+
+  /// Gets the maximum frame rate supported for slow motion recording.
+  ///
+  /// Returns the highest frame rate the device can capture for slow motion
+  /// recording (e.g., 120, 240, or higher).
+  ///
+  /// Example:
+  /// ```dart
+  /// final maxFps = await controller.getMaxSlowMotionFrameRate();
+  /// print('Max slow motion FPS: $maxFps');
+  /// ```
+  Future<int> getMaxSlowMotionFrameRate() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot get max slow motion frame rate, view not yet created',
+      );
+      return 30;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<int>('getMaxSlowMotionFrameRate');
+      logInfo('YOLOViewController: Max slow motion frame rate: ${result ?? 30}');
+      return result ?? 30;
+    } catch (e) {
+      logInfo('YOLOViewController: Error getting max slow motion frame rate: $e');
+      return 30;
+    }
+  }
+
+  /// Enables or disables slow motion mode.
+  ///
+  /// When enabled, the camera will capture at high frame rates (120fps+)
+  /// for slow motion effects. This may affect inference performance.
+  ///
+  /// Note: Cannot be changed while recording is in progress.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Enable slow motion mode
+  /// final success = await controller.enableSlowMotion(true);
+  /// if (success) {
+  ///   print('Slow motion enabled');
+  /// }
+  /// ```
+  Future<bool> enableSlowMotion(bool enable) async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot enable slow motion, view not yet created',
+      );
+      return false;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<bool>('enableSlowMotion', {
+        'enable': enable,
+      });
+      logInfo('YOLOViewController: Slow motion ${enable ? 'enabled' : 'disabled'}: ${result ?? false}');
+      return result ?? false;
+    } catch (e) {
+      logInfo('YOLOViewController: Error ${enable ? 'enabling' : 'disabling'} slow motion: $e');
+      return false;
+    }
+  }
+
+  /// Checks if slow motion mode is currently active.
+  ///
+  /// Returns true if the camera is currently in slow motion mode
+  /// (capturing at high frame rates).
+  ///
+  /// Example:
+  /// ```dart
+  /// if (await controller.isSlowMotionActive()) {
+  ///   print('Currently in slow motion mode');
+  /// }
+  /// ```
+  Future<bool> isSlowMotionActive() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot check slow motion status, view not yet created',
+      );
+      return false;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<bool>('isSlowMotionActive');
+      logInfo('YOLOViewController: Slow motion active: ${result ?? false}');
+      return result ?? false;
+    } catch (e) {
+      logInfo('YOLOViewController: Error checking slow motion status: $e');
+      return false;
+    }
+  }
+
+  /// Gets the current recording status for debugging.
+  ///
+  /// Returns a map with detailed information about the recording state,
+  /// including whether recording is active, file paths, and audio status.
+  ///
+  /// Example:
+  /// ```dart
+  /// final status = await controller.getRecordingStatus();
+  /// print('Is recording: ${status['isRecording']}');
+  /// print('File path: ${status['currentRecordingURL']}');
+  /// ```
+  Future<Map<String, dynamic>> getRecordingStatus() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot get recording status, view not yet created',
+      );
+      return {};
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<Map<Object?, Object?>>('getRecordingStatus');
+      final Map<String, dynamic> status = {};
+      result?.forEach((key, value) {
+        if (key is String) {
+          status[key] = value;
+        }
+      });
+      logInfo('YOLOViewController: Recording status: $status');
+      return status;
+    } catch (e) {
+      logInfo('YOLOViewController: Error getting recording status: $e');
+      return {};
+    }
+  }
+
+  /// Checks if recording is currently active (synchronous-style).
+  ///
+  /// Returns true if recording is currently in progress.
+  ///
+  /// Example:
+  /// ```dart
+  /// if (await controller.isCurrentlyRecording()) {
+  ///   print('Recording is active');
+  /// }
+  /// ```
+  Future<bool> isCurrentlyRecording() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot check recording state, view not yet created',
+      );
+      return false;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<bool>('isCurrentlyRecording');
+      logInfo('YOLOViewController: Currently recording: ${result ?? false}');
+      return result ?? false;
+    } catch (e) {
+      logInfo('YOLOViewController: Error checking recording state: $e');
+      return false;
+    }
+  }
+
+  /// Gets the current recording file path (synchronous-style).
+  ///
+  /// Returns the file path of the current recording, or null if not recording.
+  ///
+  /// Example:
+  /// ```dart
+  /// final filePath = await controller.getCurrentRecordingFilePath();
+  /// if (filePath != null) {
+  ///   print('Recording to: $filePath');
+  /// }
+  /// ```
+  Future<String?> getCurrentRecordingFilePath() async {
+    if (_methodChannel == null) {
+      logInfo(
+        'YOLOViewController: Warning - Cannot get recording file path, view not yet created',
+      );
+      return null;
+    }
+    try {
+      final result = await _methodChannel!.invokeMethod<String>('getCurrentRecordingFilePath');
+      logInfo('YOLOViewController: Current recording file path: $result');
+      return result;
+    } catch (e) {
+      logInfo('YOLOViewController: Error getting recording file path: $e');
+      return null;
+    }
+  }
 }
 
 /// A Flutter widget that displays a real-time camera preview with YOLO object detection.
@@ -876,10 +1223,6 @@ class YOLOViewState extends State<YOLOView> {
   void _subscribeToResults() {
     _cancelResultSubscription();
 
-    logInfo(
-      'YOLOView: Setting up event stream listener for channel: ${_resultEventChannel.name}',
-    );
-
     // Cancel any existing subscription timer
     _subscriptionTimer?.cancel();
 
@@ -1001,7 +1344,6 @@ class YOLOViewState extends State<YOLOView> {
           _resultSubscription = null;
         },
       );
-      logInfo('YOLOView: Event stream listener setup complete for $_viewId');
       // Close the dummy controller as it's no longer needed
       // The real EventChannel subscription is now active
       controller.close();
@@ -1015,7 +1357,6 @@ class YOLOViewState extends State<YOLOView> {
 
   void _cancelResultSubscription() {
     if (_resultSubscription != null) {
-      logInfo('YOLOView: Cancelling existing result subscription for $_viewId');
       _resultSubscription!.cancel();
       _resultSubscription = null;
     }

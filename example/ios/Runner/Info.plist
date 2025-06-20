@@ -27,7 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string></string>
+	<string>This app uses the camera to capture real-time video for bird classification and recording.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app uses the microphone to record audio along with video during bird classification sessions.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
