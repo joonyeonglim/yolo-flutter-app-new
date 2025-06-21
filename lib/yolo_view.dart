@@ -1412,11 +1412,6 @@ class YOLOViewState extends State<YOLOView> {
       final topConfidence = (classification['topConfidence'] as num?)?.toDouble() ?? 0.0;
       final top5Classes = classification['top5Classes'] as List<dynamic>? ?? [];
       final top5Confidences = classification['top5Confidences'] as List<dynamic>? ?? [];
-
-      logInfo('YOLOView: Classification - $topClass ($topConfidence)');
-      logInfo('YOLOView: Top 5 classes: $top5Classes');
-      logInfo('YOLOView: Top 5 confidences: $top5Confidences');
-
       final results = <YOLOResult>[];
 
       // Create results for top-5 classifications
