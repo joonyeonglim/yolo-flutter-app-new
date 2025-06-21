@@ -1263,27 +1263,42 @@ class YOLOViewState extends State<YOLOView> {
             } else {
               // Separated mode: Use individual callbacks
 
-              // Handle detection results
-              if (widget.onResult != null && event.containsKey('detections')) {
+              // Handle detection results and classification results
+              if (widget.onResult != null && 
+                  (event.containsKey('detections') || event.containsKey('classification'))) {
                 try {
-                  final List<dynamic> detections = event['detections'] ?? [];
-
-                  for (var i = 0; i < detections.length && i < 3; i++) {
-                    final detection = detections[i];
-                    final className = detection['className'] ?? 'unknown';
-                    final confidence = detection['confidence'] ?? 0.0;
+                  List<YOLOResult> results = [];
+                  
+                  // Handle classification results
+                  if (event.containsKey('classification')) {
+                    final classification = event['classification'] as Map<dynamic, dynamic>;
                     logInfo(
-                      'YOLOView: Detection $i - $className (${(confidence * 100).toStringAsFixed(1)}%)',
+                      'YOLOView: Classification - ${classification['topClass']} (${(classification['topConfidence'] * 100).toStringAsFixed(1)}%)',
                     );
+                    results = _parseClassificationResults(event);
+                  }
+                  // Handle detection results (boxes, segmentation, pose, etc.)
+                  else if (event.containsKey('detections')) {
+                    final List<dynamic> detections = event['detections'] ?? [];
+
+                    for (var i = 0; i < detections.length && i < 3; i++) {
+                      final detection = detections[i];
+                      final className = detection['className'] ?? 'unknown';
+                      final confidence = detection['confidence'] ?? 0.0;
+                      logInfo(
+                        'YOLOView: Detection $i - $className (${(confidence * 100).toStringAsFixed(1)}%)',
+                      );
+                    }
+
+                    results = _parseDetectionResults(event);
                   }
 
-                  final results = _parseDetectionResults(event);
                   widget.onResult!(results);
                 } catch (e, s) {
-                  logInfo('Error parsing detection results: $e');
-                  logInfo('Stack trace for detection error: $s');
+                  logInfo('Error parsing detection/classification results: $e');
+                  logInfo('Stack trace for detection/classification error: $s');
                   logInfo(
-                    'YOLOView: Event keys for detection error: ${event.keys.toList()}',
+                    'YOLOView: Event keys for error: ${event.keys.toList()}',
                   );
                   if (event.containsKey('detections')) {
                     final detections = event['detections'];
@@ -1293,6 +1308,17 @@ class YOLOViewState extends State<YOLOView> {
                     if (detections is List && detections.isNotEmpty) {
                       logInfo(
                         'YOLOView: First detection keys for error: ${detections.first?.keys?.toList()}',
+                      );
+                    }
+                  }
+                  if (event.containsKey('classification')) {
+                    final classification = event['classification'];
+                    logInfo(
+                      'YOLOView: Classification type for error: ${classification.runtimeType}',
+                    );
+                    if (classification is Map) {
+                      logInfo(
+                        'YOLOView: Classification keys for error: ${classification.keys.toList()}',
                       );
                     }
                   }
@@ -1369,6 +1395,72 @@ class YOLOViewState extends State<YOLOView> {
   @visibleForTesting
   List<YOLOResult> parseDetectionResults(Map<dynamic, dynamic> event) {
     return _parseDetectionResults(event);
+  }
+
+  @visibleForTesting
+  List<YOLOResult> parseClassificationResults(Map<dynamic, dynamic> event) {
+    return _parseClassificationResults(event);
+  }
+
+  /// Parses classification results from the event data.
+  ///
+  /// Classification results contain a single classification result for the entire image,
+  /// including top class, confidence, and top-5 results.
+  List<YOLOResult> _parseClassificationResults(Map<dynamic, dynamic> event) {
+    try {
+      final classification = event['classification'] as Map<dynamic, dynamic>?;
+      if (classification == null) {
+        logInfo('YOLOView: No classification data found in event');
+        return [];
+      }
+
+      final topClass = classification['topClass'] as String? ?? 'unknown';
+      final topConfidence = (classification['topConfidence'] as num?)?.toDouble() ?? 0.0;
+      final top5Classes = classification['top5Classes'] as List<dynamic>? ?? [];
+      final top5Confidences = classification['top5Confidences'] as List<dynamic>? ?? [];
+
+      logInfo('YOLOView: Classification - $topClass ($topConfidence)');
+      logInfo('YOLOView: Top 5 classes: $top5Classes');
+      logInfo('YOLOView: Top 5 confidences: $top5Confidences');
+
+      final results = <YOLOResult>[];
+
+      // Create results for top-5 classifications
+      for (int i = 0; i < top5Classes.length && i < top5Confidences.length; i++) {
+        final className = top5Classes[i] as String? ?? 'unknown';
+        final confidence = (top5Confidences[i] as num?)?.toDouble() ?? 0.0;
+
+        // For classification, we create a full-image bounding box
+        // since classification applies to the entire image
+        final result = YOLOResult(
+          classIndex: i,
+          className: className,
+          confidence: confidence,
+          // Full image bounding box (dummy values for classification)
+          boundingBox: const Rect.fromLTWH(0, 0, 1, 1),
+          normalizedBox: const Rect.fromLTWH(0, 0, 1, 1),
+        );
+
+        results.add(result);
+      }
+
+      // If no top-5 data, create single result with top class
+      if (results.isEmpty && topClass.isNotEmpty) {
+        final result = YOLOResult(
+          classIndex: 0,
+          className: topClass,
+          confidence: topConfidence,
+          boundingBox: const Rect.fromLTWH(0, 0, 1, 1),
+          normalizedBox: const Rect.fromLTWH(0, 0, 1, 1),
+        );
+        results.add(result);
+      }
+
+      return results;
+    } catch (e) {
+      logInfo('YOLOView: Error parsing classification results: $e');
+      return [];
+    }
   }
 
   List<YOLOResult> _parseDetectionResults(Map<dynamic, dynamic> event) {

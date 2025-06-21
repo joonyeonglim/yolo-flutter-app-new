@@ -713,51 +713,51 @@ public class YOLOView: UIView, VideoCaptureDelegate {
 
     removeClassificationLayers()
 
-    let overlayLayer = CALayer()
-    overlayLayer.frame = view.bounds
-    overlayLayer.name = "YOLOOverlayLayer"
+    // let overlayLayer = CALayer()
+    // overlayLayer.frame = view.bounds
+    // overlayLayer.name = "YOLOOverlayLayer"
 
-    guard let top1 = result.probs?.top1,
-      let top1Conf = result.probs?.top1Conf
-    else {
-      return
-    }
+    // guard let top1 = result.probs?.top1,
+    //   let top1Conf = result.probs?.top1Conf
+    // else {
+    //   return
+    // }
 
-    var colorIndex = 0
-    if let index = result.names.firstIndex(of: top1) {
-      colorIndex = index % ultralyticsColors.count
-    }
-    let color = ultralyticsColors[colorIndex]
+    // var colorIndex = 0
+    // if let index = result.names.firstIndex(of: top1) {
+    //   colorIndex = index % ultralyticsColors.count
+    // }
+    // let color = ultralyticsColors[colorIndex]
 
-    let confidencePercent = round(top1Conf * 1000) / 10
-    let labelText = " \(top1) \(confidencePercent)% "
+    // let confidencePercent = round(top1Conf * 1000) / 10
+    // let labelText = " \(top1) \(confidencePercent)% "
 
-    let textLayer = CATextLayer()
-    textLayer.contentsScale = UIScreen.main.scale  // Retina support
-    textLayer.alignmentMode = .left
-    let fontSize = self.bounds.height * 0.02
-    textLayer.font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
-    textLayer.fontSize = fontSize
-    textLayer.foregroundColor = UIColor.white.cgColor
-    textLayer.backgroundColor = color.cgColor
-    textLayer.cornerRadius = 4
-    textLayer.masksToBounds = true
+    // let textLayer = CATextLayer()
+    // textLayer.contentsScale = UIScreen.main.scale  // Retina support
+    // textLayer.alignmentMode = .left
+    // let fontSize = self.bounds.height * 0.02
+    // textLayer.font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+    // textLayer.fontSize = fontSize
+    // textLayer.foregroundColor = UIColor.white.cgColor
+    // textLayer.backgroundColor = color.cgColor
+    // textLayer.cornerRadius = 4
+    // textLayer.masksToBounds = true
 
-    textLayer.string = labelText
-    let textAttributes: [NSAttributedString.Key: Any] = [
-      .font: UIFont.systemFont(ofSize: fontSize, weight: .semibold)
-    ]
-    let textSize = (labelText as NSString).size(withAttributes: textAttributes)
-    let width: CGFloat = textSize.width + 10
-    let x: CGFloat = self.center.x - (width / 2)
-    let y: CGFloat = self.center.y - textSize.height
-    let height: CGFloat = textSize.height + 4
+    // textLayer.string = labelText
+    // let textAttributes: [NSAttributedString.Key: Any] = [
+    //   .font: UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+    // ]
+    // let textSize = (labelText as NSString).size(withAttributes: textAttributes)
+    // let width: CGFloat = textSize.width + 10
+    // let x: CGFloat = self.center.x - (width / 2)
+    // let y: CGFloat = self.center.y - textSize.height
+    // let height: CGFloat = textSize.height + 4
 
-    textLayer.frame = CGRect(x: x, y: y, width: width, height: height)
+    // textLayer.frame = CGRect(x: x, y: y, width: width, height: height)
 
-    overlayLayer.addSublayer(textLayer)
+    // overlayLayer.addSublayer(textLayer)
 
-    view.layer.addSublayer(overlayLayer)
+    // view.layer.addSublayer(overlayLayer)
   }
 
   private func setupUI() {
@@ -1734,6 +1734,20 @@ extension YOLOView: AVCapturePhotoCaptureDelegate {
 
       map["detections"] = detections
       print("YOLOView: Converted \(detections.count) detections to stream data")
+    }
+
+    // Convert classification results (if enabled and available)
+    if config.includeClassifications {
+      if let probs = result.probs {
+        let classification: [String: Any] = [
+          "topClass": probs.top1,
+          "topConfidence": Double(probs.top1Conf),
+          "top5Classes": probs.top5,
+          "top5Confidences": probs.top5Confs.map { Double($0) }
+        ]
+        map["classification"] = classification
+        print("YOLOView: ✅ Added classification data: \(probs.top1) (\(String(format: "%.1f", Double(probs.top1Conf) * 100))%)")
+      }
     }
 
     // Add performance metrics (if enabled)

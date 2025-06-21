@@ -859,42 +859,42 @@ class YOLOView @JvmOverloads constructor(
                 // CLASSIFY (display large in center)
                 // ----------------------------------------
                 YOLOTask.CLASSIFY -> {
-                    result.probs?.let { probs ->
-                        val alpha = (probs.top1Conf * 255).toInt().coerceIn(0, 255)
-                        // Select color based on top1Index
-                        val baseColor = ultralyticsColors[probs.top1Index % ultralyticsColors.size]
-                        val newColor = Color.argb(
-                            alpha,
-                            Color.red(baseColor),
-                            Color.green(baseColor),
-                            Color.blue(baseColor)
-                        )
+                    // result.probs?.let { probs ->
+                    //     val alpha = (probs.top1Conf * 255).toInt().coerceIn(0, 255)
+                    //     // Select color based on top1Index
+                    //     val baseColor = ultralyticsColors[probs.top1Index % ultralyticsColors.size]
+                    //     val newColor = Color.argb(
+                    //         alpha,
+                    //         Color.red(baseColor),
+                    //         Color.green(baseColor),
+                    //         Color.blue(baseColor)
+                    //     )
 
-                        val labelText = "${probs.top1} ${"%.1f".format(probs.top1Conf * 100)}%"
-                        paint.textSize = 60f
-                        val textWidth = paint.measureText(labelText)
-                        val fm = paint.fontMetrics
-                        val textHeight = fm.bottom - fm.top
-                        val pad = 16f
+                    //     val labelText = "${probs.top1} ${"%.1f".format(probs.top1Conf * 100)}%"
+                    //     paint.textSize = 60f
+                    //     val textWidth = paint.measureText(labelText)
+                    //     val fm = paint.fontMetrics
+                    //     val textHeight = fm.bottom - fm.top
+                    //     val pad = 16f
 
-                        // Screen center
-                        val centerX = vw / 2f
-                        val centerY = vh / 2f
+                    //     // Screen center
+                    //     val centerX = vw / 2f
+                    //     val centerY = vh / 2f
 
-                        val bgLeft   = centerX - (textWidth / 2) - pad
-                        val bgTop    = centerY - (textHeight / 2) - pad
-                        val bgRight  = centerX + (textWidth / 2) + pad
-                        val bgBottom = centerY + (textHeight / 2) + pad
+                    //     val bgLeft   = centerX - (textWidth / 2) - pad
+                    //     val bgTop    = centerY - (textHeight / 2) - pad
+                    //     val bgRight  = centerX + (textWidth / 2) + pad
+                    //     val bgBottom = centerY + (textHeight / 2) + pad
 
-                        paint.color = newColor
-                        paint.style = Paint.Style.FILL
-                        val bgRect = RectF(bgLeft, bgTop, bgRight, bgBottom)
-                        canvas.drawRoundRect(bgRect, 20f, 20f, paint)
+                    //     paint.color = newColor
+                    //     paint.style = Paint.Style.FILL
+                    //     val bgRect = RectF(bgLeft, bgTop, bgRight, bgBottom)
+                    //     canvas.drawRoundRect(bgRect, 20f, 20f, paint)
 
-                        paint.color = Color.WHITE
-                        val baseline = centerY - (fm.descent + fm.ascent)/2
-                        canvas.drawText(labelText, centerX - (textWidth / 2), baseline, paint)
-                    }
+                    //     paint.color = Color.WHITE
+                    //     val baseline = centerY - (fm.descent + fm.ascent)/2
+                    //     canvas.drawText(labelText, centerX - (textWidth / 2), baseline, paint)
+                    // }
                 }
                 // ----------------------------------------
                 // POSE
@@ -1378,6 +1378,32 @@ class YOLOView @JvmOverloads constructor(
             Log.d(TAG, "✅ Total detections in stream: ${detections.size} (boxes: ${result.boxes.size}, obb: ${result.obb.size})")
         }
         
+        // Convert classification results (if enabled and available)
+        if (config.includeClassifications) {
+            result.probs?.let { probs ->
+                val classification = HashMap<String, Any>()
+                classification["topClass"] = probs.top1
+                classification["topConfidence"] = probs.top1Conf.toDouble()
+                classification["top5Classes"] = probs.top5.toList()
+                classification["top5Confidences"] = probs.top5Confs.map { it.toDouble() }
+                map["classification"] = classification
+                Log.d(TAG, "✅ Added classification data: ${probs.top1} (${String.format("%.1f", probs.top1Conf * 100)}%)")
+            }
+        }
+
+        // Convert classification results (if enabled and available)
+        if (config.includeClassifications) {
+            result.probs?.let { probs ->
+                val classification = HashMap<String, Any>()
+                classification["topClass"] = probs.top1
+                classification["topConfidence"] = probs.top1Conf.toDouble()
+                classification["top5Classes"] = probs.top5.toList()
+                classification["top5Confidences"] = probs.top5Confs.map { it.toDouble() }
+                map["classification"] = classification
+                Log.d(TAG, "✅ Added classification data: ${probs.top1} (${String.format("%.1f", probs.top1Conf * 100)}%)")
+            }
+        }
+
         // Add performance metrics (if enabled)
         if (config.includeProcessingTimeMs) {
             val processingTimeMs = result.speed.toDouble()

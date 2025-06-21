@@ -515,6 +515,13 @@ class _CameraRecordingScreenState extends State<CameraRecordingScreen>
             ),
           ),
 
+          // 탐지 결과 표시 (우측 상단)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + (isLandscape ? 60 : 100),
+            right: isLandscape ? 8 : 16,
+            child: _buildDetectionResults(),
+          ),
+
           // 녹화 버튼
           Positioned(
             bottom: isLandscape ? 24 : 40,
@@ -636,6 +643,119 @@ class _CameraRecordingScreenState extends State<CameraRecordingScreen>
         ],
       ),
     );
+  }
+
+  /// 탐지 결과를 표시하는 위젯을 구성합니다
+  Widget _buildDetectionResults() {
+    if (_classificationResults.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text(
+          '탐지된 새가 없습니다',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.4,
+        maxHeight: MediaQuery.of(context).size.height * 0.3,
+      ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '탐지된 새 (${_classificationResults.length})',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _classificationResults.length,
+              itemBuilder: (context, index) {
+                final result = _classificationResults[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      // 신뢰도 바
+                      Container(
+                        width: 4,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: _getConfidenceColor(result.confidence),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // 새 이름과 신뢰도
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              result.className,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${(result.confidence * 100).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                color: _getConfidenceColor(result.confidence),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 신뢰도에 따른 색상을 반환합니다
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) {
+      return Colors.green;
+    } else if (confidence >= 0.6) {
+      return Colors.orange;
+    } else if (confidence >= 0.4) {
+      return Colors.yellow;
+    } else {
+      return Colors.red;
+    }
   }
 
   /// 로딩 화면을 구성합니다
