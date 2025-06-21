@@ -1400,7 +1400,6 @@ class YOLOView @JvmOverloads constructor(
                 classification["top5Classes"] = probs.top5.toList()
                 classification["top5Confidences"] = probs.top5Confs.map { it.toDouble() }
                 map["classification"] = classification
-                Log.d(TAG, "✅ Added classification data: ${probs.top1} (${String.format("%.1f", probs.top1Conf * 100)}%)")
             }
         }
 

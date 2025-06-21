@@ -1272,9 +1272,6 @@ class YOLOViewState extends State<YOLOView> {
                   // Handle classification results
                   if (event.containsKey('classification')) {
                     final classification = event['classification'] as Map<dynamic, dynamic>;
-                    logInfo(
-                      'YOLOView: Classification - ${classification['topClass']} (${(classification['topConfidence'] * 100).toStringAsFixed(1)}%)',
-                    );
                     results = _parseClassificationResults(event);
                   }
                   // Handle detection results (boxes, segmentation, pose, etc.)
@@ -1285,9 +1282,6 @@ class YOLOViewState extends State<YOLOView> {
                       final detection = detections[i];
                       final className = detection['className'] ?? 'unknown';
                       final confidence = detection['confidence'] ?? 0.0;
-                      logInfo(
-                        'YOLOView: Detection $i - $className (${(confidence * 100).toStringAsFixed(1)}%)',
-                      );
                     }
 
                     results = _parseDetectionResults(event);

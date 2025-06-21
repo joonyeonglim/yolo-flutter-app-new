@@ -1746,7 +1746,6 @@ extension YOLOView: AVCapturePhotoCaptureDelegate {
           "top5Confidences": probs.top5Confs.map { Double($0) }
         ]
         map["classification"] = classification
-        print("YOLOView: ✅ Added classification data: \(probs.top1) (\(String(format: "%.1f", Double(probs.top1Conf) * 100))%)")
       }
     }
 
